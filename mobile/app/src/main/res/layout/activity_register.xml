@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#421C3B">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingTop="60dp"
+        android:paddingBottom="60dp"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp">
+
+        <!-- Logo with Gold Ring -->
+        <FrameLayout
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_marginBottom="12dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_gravity="center"
+                app:cardCornerRadius="60dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#B28E3A"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="104dp"
+                android:layout_height="104dp"
+                android:layout_gravity="center"
+                app:cardCornerRadius="52dp"
+                app:cardElevation="8dp"
+                app:cardBackgroundColor="#E8E4C9">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="🐪"
+                    android:textSize="44sp"/>
+            </androidx.cardview.widget.CardView>
+        </FrameLayout>
+
+        <!-- Campus Bazaar Label -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CAMPUS BAZAAR"
+            android:textColor="#B28E3A"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.2"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Arch Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="120dp"
+            app:cardElevation="20dp"
+            app:cardBackgroundColor="#DD1a0a14">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
+                android:paddingTop="48dp"
+                android:paddingBottom="40dp">
+
+                <!-- Title -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Join the Caravan"
+                    android:textColor="#FFFFFF"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:fontFamily="serif"
+                    android:gravity="center"
+                    android:layout_marginBottom="6dp"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Become a merchant today"
+                    android:textColor="#B28E3A"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:alpha="0.9"
+                    android:layout_marginBottom="28dp"/>
+
+                <!-- Error Message -->
+                <TextView
+                    android:id="@+id/tvError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="#A3464D"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:padding="8dp"
+                    android:visibility="gone"
+                    android:background="#22A3464D"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- First Name Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="FIRST NAME"
+                            android:textColor="#B28E3A"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"
+                            android:layout_marginBottom="8dp"/>
+
+                        <EditText
+                            android:id="@+id/etFirstName"
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:background="@drawable/input_background_plum"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:hint="firstname"
+                            android:inputType="textPersonName"
+                            android:textColor="#E8E4C9"
+                            android:textColorHint="#80E8E4C9"
+                            android:textSize="13sp"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="LAST NAME"
+                            android:textColor="#B28E3A"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"
+                            android:layout_marginBottom="8dp"/>
+
+                        <EditText
+                            android:id="@+id/etLastName"
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:background="@drawable/input_background_plum"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:hint="Lastname"
+                            android:inputType="textPersonName"
+                            android:textColor="#E8E4C9"
+                            android:textColorHint="#80E8E4C9"
+                            android:textSize="13sp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Email -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="EMAIL SCROLL"
+                    android:textColor="#B28E3A"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="8dp"/>
+
+                <EditText
+                    android:id="@+id/etEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/input_background_teal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:hint="you@campus.edu"
+                    android:inputType="textEmailAddress"
+                    android:textColor="#E8E4C9"
+                    android:textColorHint="#80E8E4C9"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Password -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="SECRET KEY"
+                    android:textColor="#B28E3A"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="8dp"/>
+
+                <EditText
+                    android:id="@+id/etPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/input_background_teal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:hint="Min. 8 characters"
+                    android:inputType="textPassword"
+                    android:textColor="#E8E4C9"
+                    android:textColorHint="#80E8E4C9"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="16dp"/>
+
+                <!-- Confirm Password -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="CONFIRM SECRET KEY"
+                    android:textColor="#B28E3A"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15"
+                    android:layout_marginBottom="8dp"/>
+
+                <EditText
+                    android:id="@+id/etConfirmPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/input_background_teal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:hint="Re-enter your key"
+                    android:inputType="textPassword"
+                    android:textColor="#E8E4C9"
+                    android:textColorHint="#80E8E4C9"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="28dp"/>
+
+                <!-- Register Button -->
+                <Button
+                    android:id="@+id/btnRegister"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="START JOURNEY"
+                    android:textColor="#1a0a14"
+                    android:textStyle="bold"
+                    android:textSize="14sp"
+                    android:letterSpacing="0.08"
+                    android:backgroundTint="#B28E3A"
+                    android:fontFamily="serif"
+                    app:cornerRadius="12dp"/>
+
+                <!-- Progress Bar -->
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    android:indeterminateTint="#B28E3A"/>
+
+                <!-- Login Link -->
+                <TextView
+                    android:id="@+id/tvLoginLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="20dp"
+                    android:text="Already a merchant? Enter here"
+                    android:textColor="#B28E3A"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+</ScrollView>
