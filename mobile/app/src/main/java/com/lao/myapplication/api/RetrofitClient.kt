@@ -17,7 +17,7 @@ object RetrofitClient {
     private val client = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .build()
-
+//
     val instance: ApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
