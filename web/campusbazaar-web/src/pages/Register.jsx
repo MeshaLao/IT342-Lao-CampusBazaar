@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import api from '../api/axios'
 import Input from '../components/ui/Input'
+import GoogleIcon from '../components/ui/GoogleIcon'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -38,7 +39,10 @@ export default function Register() {
         password: formData.password
       })
       localStorage.setItem('token', res.data.data.accessToken)
-      navigate('/dashboard')
+      localStorage.setItem('userName', res.data.data.fullName)
+      localStorage.setItem('userEmail', res.data.data.email)
+      localStorage.setItem('userRole', res.data.data.role)
+      navigate('/marketplace')
     } catch (err) {
       setError(err.response?.data?.data || 'Registration failed')
     } finally {
@@ -47,11 +51,13 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8"
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-8"
       style={{ backgroundColor: '#421C3B' }}>
 
       {/* Arch Card */}
-      <div className="w-full max-w-sm px-10 py-12 shadow-2xl"
+      <div
+        className="w-full max-w-sm px-10 py-12 shadow-2xl"
         style={{
           backgroundColor: '#1a0a14',
           border: '1px solid #8B6914',
@@ -60,7 +66,8 @@ export default function Register() {
 
         {/* Logo */}
         <div className="flex justify-center mb-5">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
             style={{ backgroundColor: '#E8E4C9' }}>
             <span className="text-3xl">🐪</span>
           </div>
@@ -68,7 +75,8 @@ export default function Register() {
 
         {/* Title */}
         <div className="text-center mb-7">
-          <h1 className="text-3xl font-bold text-white mb-2"
+          <h1
+            className="text-3xl font-bold text-white mb-2"
             style={{ fontFamily: 'Georgia, serif', letterSpacing: '0.03em' }}>
             Join the Caravan
           </h1>
@@ -79,11 +87,32 @@ export default function Register() {
 
         {/* Error */}
         {error && (
-          <div className="text-sm px-4 py-2 rounded-lg mb-4 text-center"
+          <div
+            className="text-sm px-4 py-2 rounded-lg mb-4 text-center"
             style={{ backgroundColor: '#A3464D22', color: '#A3464D' }}>
             {typeof error === 'object' ? JSON.stringify(error) : error}
           </div>
         )}
+
+        {/* Google Button */}
+        
+          <a href="http://localhost:8080/oauth2/authorization/google"
+          className="w-full flex items-center justify-center gap-3 py-3 rounded-lg font-bold text-sm mb-4 hover:opacity-90 transition"
+          style={{ backgroundColor: '#fff', color: '#421C3B' }}>
+          <GoogleIcon />
+          Sign up with Google
+        </a>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px" style={{ backgroundColor: '#ffffff33' }} />
+          <span
+            className="text-xs font-bold tracking-widest"
+            style={{ color: '#9ca3af' }}>
+            OR
+          </span>
+          <div className="flex-1 h-px" style={{ backgroundColor: '#ffffff33' }} />
+        </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -91,7 +120,8 @@ export default function Register() {
           {/* First & Last Name Row */}
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-bold tracking-widest mb-2"
+              <label
+                className="block text-xs font-bold tracking-widest mb-2"
                 style={{ color: '#B28E3A' }}>
                 FIRST NAME
               </label>
@@ -101,7 +131,7 @@ export default function Register() {
                 value={formData.firstName}
                 onChange={handleChange}
                 required
-                placeholder="firstname"
+                placeholder="Firstname"
                 className="w-full px-4 py-3 rounded-lg text-sm focus:outline-none text-center"
                 style={{
                   backgroundColor: '#2a1020',
@@ -111,7 +141,8 @@ export default function Register() {
               />
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-bold tracking-widest mb-2"
+              <label
+                className="block text-xs font-bold tracking-widest mb-2"
                 style={{ color: '#B28E3A' }}>
                 LAST NAME
               </label>
@@ -162,7 +193,7 @@ export default function Register() {
             required
           />
 
-          {/* Gradient Button */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -175,15 +206,15 @@ export default function Register() {
           </button>
         </form>
 
-        {/* Divider */}
-        <div className="my-5"
-          style={{ borderTop: '1px solid #4a2040' }} />
+        {/* Bottom Divider */}
+        <div className="my-5" style={{ borderTop: '1px solid #4a2040' }} />
 
         {/* Footer */}
         <div className="text-center">
           <p className="text-sm" style={{ color: '#9ca3af' }}>
             Already a merchant?{' '}
-            <Link to="/login"
+            <Link
+              to="/login"
               className="font-bold"
               style={{ color: '#B28E3A' }}>
               Enter here
