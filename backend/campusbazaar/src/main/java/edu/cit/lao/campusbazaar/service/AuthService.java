@@ -9,7 +9,6 @@ import edu.cit.lao.campusbazaar.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 
 @Service
@@ -22,15 +21,14 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
 
-        // Check for duplicate email
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
         }
 
-        // Build and save new user
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
+                .fullName(request.getFirstName() + " " + request.getLastName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(User.Role.STUDENT)
@@ -39,14 +37,13 @@ public class AuthService {
 
         userRepository.save(user);
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(
+                user.getEmail(), user.getRole().name());
 
-        // Build response
         AuthResponse.UserData userData = AuthResponse.UserData.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .fullName(user.getFirstName() + " " + user.getLastName())
+                .fullName(user.getFullName())
                 .role(user.getRole().name())
                 .accessToken(token)
                 .build();
@@ -60,23 +57,27 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
 
-        // Find user by email
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() ->
+                        new RuntimeException("Invalid email or password"));
 
-        // Verify password
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(
+                request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        String token = jwtUtil.generateToken(
+                user.getEmail(), user.getRole().name());
 
-        // Build response
+        String fullName = user.getFullName();
+        if (fullName == null || fullName.isBlank()) {
+            fullName = user.getFirstName() + " " + user.getLastName();
+        }
+
         AuthResponse.UserData userData = AuthResponse.UserData.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .fullName(user.getFirstName() + " " + user.getLastName())
+                .fullName(fullName)
                 .role(user.getRole().name())
                 .accessToken(token)
                 .build();
