@@ -1,2 +1,47 @@
-.DS_Store
+# ===========================
+# SENSITIVE CONFIG FILES
+# ===========================
+# Never commit these - they contain passwords and API keys
 backend/campusbazaar/src/main/resources/application.properties
+
+# ===========================
+# JAVA / SPRING BOOT
+# ===========================
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ===========================
+# NODE / REACT
+# ===========================
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+
+# ===========================
+# UPLOADS (user uploaded files)
+# ===========================
+backend/campusbazaar/uploads/
+
+# ===========================
+# IDE FILES
+# ===========================
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# ===========================
+# ANDROID
+# ===========================
+mobile/.gradle/
+mobile/local.properties
+mobile/build/
