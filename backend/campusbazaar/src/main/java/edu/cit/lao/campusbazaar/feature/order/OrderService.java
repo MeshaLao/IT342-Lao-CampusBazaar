@@ -8,10 +8,11 @@ import edu.cit.lao.campusbazaar.feature.product.ProductRepository;
 import edu.cit.lao.campusbazaar.feature.product.model.Product;
 import edu.cit.lao.campusbazaar.feature.user.UserRepository;
 import edu.cit.lao.campusbazaar.feature.user.model.User;
+import edu.cit.lao.campusbazaar.shared.config.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.ArrayList;
+
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -27,45 +28,36 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final QrCodeRepository qrCodeRepository;
+    private final EmailService emailService;
 
     @Transactional
     public AuthResponse placeOrder(Long productId, Integer quantity,
                                    String paymentMethod, String buyerEmail) {
         try {
-            // Get buyer
             User buyer = userRepository.findByEmail(buyerEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Get product
             Product product = productRepository.findByIdWithSeller(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            // Validate product is active
             if (product.getStatus() != Product.ProductStatus.ACTIVE) {
                 throw new RuntimeException("Product is not available for purchase");
             }
 
-            // Validate stock
             if (product.getStock() < quantity) {
-                throw new RuntimeException("Insufficient stock. Available: "
-                        + product.getStock());
+                throw new RuntimeException("Insufficient stock. Available: " + product.getStock());
             }
 
-            // Prevent buying own product
             if (product.getSeller().getEmail().equals(buyerEmail)) {
                 throw new RuntimeException("You cannot buy your own product");
             }
 
-            // Calculate total
-            BigDecimal total = product.getPrice()
-                    .multiply(BigDecimal.valueOf(quantity));
+            BigDecimal total = product.getPrice().multiply(BigDecimal.valueOf(quantity));
 
-            // Determine payment method
             Order.PaymentMethod method = paymentMethod.equalsIgnoreCase("MEETUP")
                     ? Order.PaymentMethod.MEETUP
                     : Order.PaymentMethod.PAYMONGO;
 
-            // Create and save order first
             Order order = Order.builder()
                     .buyer(buyer)
                     .totalAmount(total)
@@ -76,7 +68,6 @@ public class OrderService {
 
             Order savedOrder = orderRepository.save(order);
 
-            // Create and save order item separately
             OrderItem item = OrderItem.builder()
                     .order(savedOrder)
                     .product(product)
@@ -85,15 +76,12 @@ public class OrderService {
                     .unitPrice(product.getPrice())
                     .build();
 
-            // Save item directly — don't rely on cascade
             savedOrder.getItems().add(item);
             orderRepository.save(savedOrder);
 
-            // Reduce stock
             product.setStock(product.getStock() - quantity);
             productRepository.save(product);
 
-            // Generate QR code for MEETUP
             String qrCodeUrl = null;
             if (method == Order.PaymentMethod.MEETUP) {
                 qrCodeUrl = generateQrCode(savedOrder, product, buyer);
@@ -101,17 +89,49 @@ public class OrderService {
 
             // Get seller name safely
             String sellerName = "";
+            String sellerEmail = "";
             try {
-                sellerName = product.getSeller().getFullName();
+                User seller = product.getSeller();
+                sellerEmail = seller.getEmail();
+                sellerName = seller.getFullName();
                 if (sellerName == null || sellerName.isBlank()) {
-                    sellerName = product.getSeller().getFirstName()
-                            + " " + product.getSeller().getLastName();
+                    sellerName = seller.getFirstName() + " " + seller.getLastName();
                 }
             } catch (Exception e) {
                 sellerName = "Unknown";
             }
 
-            // Build response
+            // Get buyer name safely
+            String buyerName = buyer.getFullName();
+            if (buyerName == null || buyerName.isBlank()) {
+                buyerName = buyer.getFirstName() + " " + buyer.getLastName();
+            }
+
+            // Send emails
+            try {
+                emailService.sendOrderConfirmationEmail(
+                        buyer.getEmail(),
+                        buyerName,
+                        savedOrder.getOrderNumber(),
+                        product.getName(),
+                        method.name(),
+                        total.doubleValue()
+                );
+
+                if (!sellerEmail.isBlank()) {
+                    emailService.sendSellerNotificationEmail(
+                            sellerEmail,
+                            sellerName,
+                            savedOrder.getOrderNumber(),
+                            product.getName(),
+                            buyerName,
+                            method.name()
+                    );
+                }
+            } catch (Exception e) {
+                System.out.println("Email sending failed (non-critical): " + e.getMessage());
+            }
+
             Map<String, Object> response = new HashMap<>();
             response.put("orderId", savedOrder.getId());
             response.put("orderNumber", savedOrder.getOrderNumber());
@@ -139,7 +159,6 @@ public class OrderService {
 
     private String generateQrCode(Order order, Product product, User buyer) {
         try {
-            // Build QR data
             String qrData = String.format(
                     "ORDER:%s|PRODUCT:%s|BUYER:%s|AMOUNT:%.2f|METHOD:MEETUP",
                     order.getOrderNumber(),
@@ -150,12 +169,9 @@ public class OrderService {
                     order.getTotalAmount()
             );
 
-            // Call goqr.me API
             String encoded = URLEncoder.encode(qrData, StandardCharsets.UTF_8);
-            String qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?"
-                    + "size=300x300&data=" + encoded;
+            String qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encoded;
 
-            // Save QR code to DB
             QrCode qrCode = QrCode.builder()
                     .order(order)
                     .qrData(qrData)
@@ -163,7 +179,6 @@ public class OrderService {
                     .build();
 
             qrCodeRepository.save(qrCode);
-
             return qrImageUrl;
 
         } catch (Exception e) {
@@ -229,9 +244,7 @@ public class OrderService {
     }
 
     @Transactional
-    public AuthResponse updateOrderStatus(Long orderId,
-                                          String status, String userEmail) {
-
+    public AuthResponse updateOrderStatus(Long orderId, String status, String userEmail) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
@@ -256,23 +269,19 @@ public class OrderService {
         map.put("status", o.getStatus().name());
         map.put("paymentMethod", o.getPaymentMethod().name());
         map.put("totalAmount", o.getTotalAmount());
-        map.put("createdAt", o.getCreatedAt() != null
-                ? o.getCreatedAt().toString() : "");
+        map.put("createdAt", o.getCreatedAt() != null ? o.getCreatedAt().toString() : "");
 
-        // Buyer
         if (o.getBuyer() != null) {
             Map<String, Object> buyer = new HashMap<>();
             buyer.put("id", o.getBuyer().getId());
             String name = o.getBuyer().getFullName();
             if (name == null || name.isBlank()) {
-                name = o.getBuyer().getFirstName()
-                        + " " + o.getBuyer().getLastName();
+                name = o.getBuyer().getFirstName() + " " + o.getBuyer().getLastName();
             }
             buyer.put("fullName", name);
             map.put("buyer", buyer);
         }
 
-        // Items
         if (o.getItems() != null) {
             List<Map<String, Object>> items = o.getItems().stream()
                     .map(item -> {
@@ -283,10 +292,8 @@ public class OrderService {
                         i.put("unitPrice", item.getUnitPrice());
                         if (item.getProduct() != null) {
                             i.put("productId", item.getProduct().getId());
-                            i.put("imageUrl",
-                                    item.getProduct().getImageUrl() != null
-                                            ? item.getProduct().getImageUrl() : "");
-                            // Seller info
+                            i.put("imageUrl", item.getProduct().getImageUrl() != null
+                                    ? item.getProduct().getImageUrl() : "");
                             Map<String, Object> seller = new HashMap<>();
                             seller.put("id", item.getProduct().getSeller().getId());
                             String sName = item.getProduct().getSeller().getFullName();
@@ -303,7 +310,6 @@ public class OrderService {
             map.put("items", items);
         }
 
-        // QR code for MEETUP
         if (o.getPaymentMethod() == Order.PaymentMethod.MEETUP) {
             qrCodeRepository.findByOrderId(o.getId())
                     .ifPresent(qr -> map.put("qrCodeUrl", qr.getQrImageUrl()));
