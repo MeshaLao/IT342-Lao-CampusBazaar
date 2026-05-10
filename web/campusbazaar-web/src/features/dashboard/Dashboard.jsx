@@ -6,9 +6,9 @@ import Footer from '../../shared/components/layout/Footer'
 import Toast from '../../shared/components/ui/Toast'
 import EmptyState from '../../shared/components/ui/EmptyState'
 import ConfirmDialog from '../../shared/components/ui/ConfirmDialog'
-import ProductCard from '../shared/components/dashboard/ProductCard'
-import EditListingModal from '../shared/components/dashboard/EditListingModal'
-import OrdersTab from '../shared/components/dashboard/OrdersTab'
+import ProductCard from "./ProductCard";
+import EditListingModal from "./EditListingModal";
+import OrdersTab from "./OrdersTab";
 import useToast from '../../shared/hooks/useToast'
 import {
   Store, CheckCircle, PlusCircle,
