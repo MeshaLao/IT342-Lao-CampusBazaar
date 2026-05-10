@@ -5,21 +5,17 @@ import edu.cit.lao.campusbazaar.model.Product;
 import edu.cit.lao.campusbazaar.model.User;
 import edu.cit.lao.campusbazaar.repository.ProductRepository;
 import edu.cit.lao.campusbazaar.repository.UserRepository;
+import edu.cit.lao.campusbazaar.repository.ProductImageRepository;
+import edu.cit.lao.campusbazaar.model.ProductImage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,18 +24,14 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
-
+    private final CloudinaryService cloudinaryService;
+    private final ProductImageRepository productImageRepository;    // ─── CREATE ────────────────────────────────────────────────────────────
     public AuthResponse createProduct(String name, String description,
                                       BigDecimal price, Integer stock, String category,
-                                      MultipartFile image, String sellerEmail) {
+                                      List<MultipartFile> images, String sellerEmail) {
 
         User seller = userRepository.findByEmail(sellerEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        String imageUrl = null;
-        if (image != null && !image.isEmpty()) {
-            imageUrl = saveImage(image);
-        }
 
         Product product = Product.builder()
                 .name(name)
@@ -47,14 +39,35 @@ public class ProductService {
                 .price(price)
                 .stock(stock)
                 .category(category)
-                .imageUrl(imageUrl)
                 .seller(seller)
                 .status(Product.ProductStatus.PENDING_APPROVAL)
                 .isActive(false)
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        // Set first image as main imageUrl for backward compatibility
+        if (images != null && !images.isEmpty()) {
+            String firstUrl = cloudinaryService.uploadImage(images.get(0));
+            product.setImageUrl(firstUrl);
+        }
+
         productRepository.save(product);
+
+        // Save all images to product_images table
+        if (images != null) {
+            for (int i = 0; i < images.size(); i++) {
+                String url = i == 0
+                        ? product.getImageUrl()
+                        : cloudinaryService.uploadImage(images.get(i));
+
+                ProductImage pi = ProductImage.builder()
+                        .product(product)
+                        .imageUrl(url)
+                        .displayOrder(i)
+                        .build();
+                productImageRepository.save(pi);
+            }
+        }
 
         Map<String, Object> productMap = new HashMap<>();
         productMap.put("id", product.getId());
@@ -75,6 +88,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── GET ALL (public - ACTIVE only) ────────────────────────────────────
     public AuthResponse getAllProducts(String search) {
         List<Product> products;
         if (search != null && !search.isEmpty()) {
@@ -100,6 +114,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── GET BY ID ─────────────────────────────────────────────────────────
     public AuthResponse getProductById(Long id) {
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -114,6 +129,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── GET MY PRODUCTS (seller) ───────────────────────────────────────────
     public AuthResponse getMyProducts(String sellerEmail) {
         User seller = userRepository.findByEmail(sellerEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -134,6 +150,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── GET ALL (admin) ───────────────────────────────────────────────────
     public AuthResponse getAllProductsAdmin() {
         List<Product> products = productRepository.findAllWithSeller();
 
@@ -152,6 +169,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── GET PENDING (admin) ───────────────────────────────────────────────
     public AuthResponse getPendingProducts() {
         List<Product> products = productRepository
                 .findByStatus(Product.ProductStatus.PENDING_APPROVAL);
@@ -171,6 +189,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── APPROVE (admin) ───────────────────────────────────────────────────
     public AuthResponse approveProduct(Long id, String adminEmail) {
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -191,6 +210,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── REJECT (admin) ────────────────────────────────────────────────────
     public AuthResponse rejectProduct(Long id, String reason, String adminEmail) {
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -212,6 +232,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── DEACTIVATE (admin) ────────────────────────────────────────────────
     public AuthResponse deactivateProduct(Long id, String reason, String adminEmail) {
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -231,6 +252,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── UPDATE ────────────────────────────────────────────────────────────
     public AuthResponse updateProduct(Long id, String name, String description,
                                       BigDecimal price, Integer stock, String category,
                                       MultipartFile image, String sellerEmail) {
@@ -248,7 +270,11 @@ public class ProductService {
         if (stock != null) product.setStock(stock);
         if (category != null) product.setCategory(category);
         if (image != null && !image.isEmpty()) {
-            product.setImageUrl(saveImage(image));
+            // Delete old image from Cloudinary if exists
+            if (product.getImageUrl() != null) {
+                cloudinaryService.deleteImage(product.getImageUrl());
+            }
+            product.setImageUrl(cloudinaryService.uploadImage(image));
         }
 
         productRepository.save(product);
@@ -260,6 +286,7 @@ public class ProductService {
                 .build();
     }
 
+    // ─── RESUBMIT ──────────────────────────────────────────────────────────
     public AuthResponse resubmitProduct(Long id, String name, String description,
                                         BigDecimal price, Integer stock, String category,
                                         MultipartFile image, String sellerEmail) {
@@ -281,7 +308,10 @@ public class ProductService {
         if (stock != null) product.setStock(stock);
         if (category != null) product.setCategory(category);
         if (image != null && !image.isEmpty()) {
-            product.setImageUrl(saveImage(image));
+            if (product.getImageUrl() != null) {
+                cloudinaryService.deleteImage(product.getImageUrl());
+            }
+            product.setImageUrl(cloudinaryService.uploadImage(image));
         }
 
         product.setStatus(Product.ProductStatus.PENDING_APPROVAL);
@@ -299,12 +329,18 @@ public class ProductService {
                 .build();
     }
 
+    // ─── DELETE ────────────────────────────────────────────────────────────
     public AuthResponse deleteProduct(Long id, String sellerEmail) {
         Product product = productRepository.findByIdWithSeller(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
         if (!product.getSeller().getEmail().equals(sellerEmail)) {
             throw new RuntimeException("Unauthorized");
+        }
+
+        // Delete image from Cloudinary
+        if (product.getImageUrl() != null) {
+            cloudinaryService.deleteImage(product.getImageUrl());
         }
 
         productRepository.delete(product);
@@ -316,20 +352,7 @@ public class ProductService {
                 .build();
     }
 
-    private String saveImage(MultipartFile image) {
-        try {
-            String uploadDir = "uploads/";
-            File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-            String filename = UUID.randomUUID() + "_" + image.getOriginalFilename();
-            Path path = Paths.get(uploadDir + filename);
-            Files.write(path, image.getBytes());
-            return "/uploads/" + filename;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save image");
-        }
-    }
-
+    // ─── PRIVATE MAPPERS ───────────────────────────────────────────────────
     private Map<String, Object> mapProduct(Product p) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", p.getId());
@@ -350,7 +373,8 @@ public class ProductService {
             sellerMap.put("id", p.getSeller().getId());
             String fullName = p.getSeller().getFullName();
             if (fullName == null || fullName.isBlank()) {
-                fullName = p.getSeller().getFirstName() + " " + p.getSeller().getLastName();
+                fullName = p.getSeller().getFirstName() + " "
+                        + p.getSeller().getLastName();
             }
             sellerMap.put("fullName", fullName);
         } catch (Exception e) {
@@ -378,12 +402,27 @@ public class ProductService {
             sellerMap.put("id", p.getSeller().getId());
             String fullName = p.getSeller().getFullName();
             if (fullName == null || fullName.isBlank()) {
-                fullName = p.getSeller().getFirstName() + " " + p.getSeller().getLastName();
+                fullName = p.getSeller().getFirstName() + " "
+                        + p.getSeller().getLastName();
             }
             sellerMap.put("fullName", fullName);
+            sellerMap.put("email", p.getSeller().getEmail());
         } catch (Exception e) {
             sellerMap.put("id", 0);
             sellerMap.put("fullName", "Unknown");
+        }
+
+        // Get all images from product_images table
+        List<String> imageUrls = productImageRepository
+                .findByProductIdOrderByDisplayOrderAsc(p.getId())
+                .stream()
+                .map(ProductImage::getImageUrl)
+                .collect(Collectors.toList());
+
+        // Fallback to single imageUrl if no images in table
+        if (imageUrls.isEmpty() && p.getImageUrl() != null
+                && !p.getImageUrl().isBlank()) {
+            imageUrls.add(p.getImageUrl());
         }
 
         Map<String, Object> map = new HashMap<>();
@@ -393,10 +432,12 @@ public class ProductService {
         map.put("price", p.getPrice());
         map.put("stock", p.getStock());
         map.put("imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "");
+        map.put("imageUrls", imageUrls);
         map.put("category", p.getCategory() != null ? p.getCategory() : "");
         map.put("status", p.getStatus().name());
         map.put("seller", sellerMap);
-        map.put("createdAt", p.getCreatedAt() != null ? p.getCreatedAt().toString() : "");
+        map.put("createdAt", p.getCreatedAt() != null
+                ? p.getCreatedAt().toString() : "");
         return map;
     }
 }
