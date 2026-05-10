@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api/axios'
+import api from '../../shared/api/axios'
 import { CheckCircle, Package } from 'lucide-react'
-import EmptyState from '../ui/EmptyState'
-import Toast from '../ui/Toast'
-import useToast from '../../../hooks/useToast'
+import EmptyState from '../../shared/components/ui/EmptyState'
+import Toast from '../../shared/components/ui/Toast'
+import useToast from '../../shared/hooks/useToast'
 
 function statusStyle(s) {
   switch (s) {
