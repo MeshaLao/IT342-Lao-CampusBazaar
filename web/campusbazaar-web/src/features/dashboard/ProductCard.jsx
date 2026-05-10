@@ -1,7 +1,7 @@
 import { Eye, Pencil, Trash2, RefreshCw } from 'lucide-react'
-import ProductImage from '../ui/ProductImage'
-import StatusBadge from '../ui/StatusBadge'
-import AlertBanner from '../ui/AlertBanner'
+import ProductImage from '../../shared/components/ui/ProductImage'
+import StatusBadge from '../../shared/components/ui/StatusBadge'
+import AlertBanner from '../../shared/components/ui/AlertBanner'
 
 export default function ProductCard({
   product, onView, onEdit, onResubmit, onDelete, showRejectionBanner = false
