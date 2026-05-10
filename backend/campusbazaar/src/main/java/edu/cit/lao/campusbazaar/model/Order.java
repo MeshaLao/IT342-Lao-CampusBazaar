@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 @Data
 @Builder
@@ -38,8 +39,9 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<OrderItem> items;
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<OrderItem> items = new ArrayList<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
