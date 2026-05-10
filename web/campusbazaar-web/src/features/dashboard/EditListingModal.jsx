@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import Modal from '../ui/Modal'
-import ImageUpload from '../ui/ImageUpload'
-import AlertBanner from '../ui/AlertBanner'
+import Modal from '../../shared/components/ui/Modal'
+import ImageUpload from '../../shared/components/ui/ImageUpload'
+import AlertBanner from '../../shared/components/ui/AlertBanner'
 
 const CATEGORIES = [
   'Textbooks', 'Electronics', 'Furniture',
