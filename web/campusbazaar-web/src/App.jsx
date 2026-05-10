@@ -8,6 +8,8 @@ import Sell from './pages/Sell'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import OAuth2Callback from './pages/OAuth2Callback'
+import Checkout from './pages/Checkout'
+import MyOrders from './pages/MyOrders'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -32,6 +34,12 @@ export default function App() {
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/oauth2/callback" element={<OAuth2Callback />} />
+        <Route path="/checkout/:productId" element={
+  <PrivateRoute><Checkout /></PrivateRoute>
+} />
+<Route path="/orders" element={
+  <PrivateRoute><MyOrders /></PrivateRoute>
+} />
         <Route path="/sell" element={
           <PrivateRoute><Sell /></PrivateRoute>
         } />
