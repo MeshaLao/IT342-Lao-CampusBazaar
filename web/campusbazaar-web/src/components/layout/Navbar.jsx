@@ -65,7 +65,14 @@ export default function Navbar({ user }) {
           <LayoutDashboard size={16} />
           Dashboard
         </Link>
+
+        <Link to="/orders"
+        className="flex items-center gap-2 text-sm font-medium hover:opacity-80"
+        style={{ color: '#E8E4C9' }}>
+        My Orders
+        </Link>
       </div>
+
 
       {/* Right Side */}
       <div className="flex items-center gap-5">

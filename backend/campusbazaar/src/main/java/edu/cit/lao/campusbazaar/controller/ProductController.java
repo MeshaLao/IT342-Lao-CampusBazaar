@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -41,12 +42,12 @@ public class ProductController {
             @RequestParam BigDecimal price,
             @RequestParam Integer stock,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) MultipartFile image,
+            @RequestParam(required = false) List<MultipartFile> images,
             Authentication auth) {
         return ResponseEntity.ok(
                 productService.createProduct(
                         name, description, price, stock,
-                        category, image, auth.getName()));
+                        category, images, auth.getName()));
     }
 
     @PutMapping(value = "/products/{id}", consumes = "multipart/form-data")

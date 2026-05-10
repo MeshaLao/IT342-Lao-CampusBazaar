@@ -66,9 +66,9 @@ export default function Sell() {
       data.append('price', formData.price)
       data.append('stock', formData.stock)
       data.append('category', formData.category)
-      if (images.length > 0) {
-        data.append('image', images[0])
-      }
+      images.forEach(img => {
+        data.append('images', img)
+        })
 
       await api.post('/products', data, {
         headers: {
