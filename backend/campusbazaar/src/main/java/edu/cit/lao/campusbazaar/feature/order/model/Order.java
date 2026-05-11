@@ -32,6 +32,11 @@ public class Order {
 
     @Column(name = "total_amount", precision = 10, scale = 2)
     private BigDecimal totalAmount;
+    @Column(name = "paymongo_link_id")
+    private String paymongoLinkId;
+
+    @Column(name = "paymongo_checkout_url", columnDefinition = "TEXT")
+    private String paymongoCheckoutUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
