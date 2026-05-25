@@ -1,12 +1,8 @@
 package edu.cit.lao.campusbazaar.feature.messaging.model;
 
-import edu.cit.lao.campusbazaar.feature.product.model.Product;
 import edu.cit.lao.campusbazaar.feature.user.model.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Data
@@ -21,9 +17,8 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+    @Column(name = "product_id")
+    private Long productId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
@@ -37,7 +32,8 @@ public class Message {
     private String body;
 
     @Column(name = "is_read")
-    private Boolean isRead;
+    @Builder.Default
+    private boolean read = false;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -45,6 +41,5 @@ public class Message {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        if (isRead == null) isRead = false;
     }
 }
