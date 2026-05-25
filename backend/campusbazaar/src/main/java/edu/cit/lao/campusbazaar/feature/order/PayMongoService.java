@@ -37,8 +37,9 @@ public class PayMongoService {
                 "description", description,
                 "reference_number", orderNumber,
                 "redirect", Map.of(
+                        // PayMongo appends ?reference_number=ORDER-XXX to this URL
                         "success", "http://localhost:5173/payment/success",
-                        "failed", "http://localhost:5173/checkout"
+                        "failed",  "http://localhost:5173/payment/failed"
                 )
         );
 

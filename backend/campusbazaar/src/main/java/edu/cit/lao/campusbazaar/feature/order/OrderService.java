@@ -1,6 +1,7 @@
 package edu.cit.lao.campusbazaar.feature.order;
 
 import edu.cit.lao.campusbazaar.feature.auth.dto.AuthResponse;
+import edu.cit.lao.campusbazaar.feature.notification.NotificationService;
 import edu.cit.lao.campusbazaar.feature.order.model.Order;
 import edu.cit.lao.campusbazaar.feature.order.model.OrderItem;
 import edu.cit.lao.campusbazaar.feature.order.model.QrCode;
@@ -30,10 +31,13 @@ public class OrderService {
     private final QrCodeRepository qrCodeRepository;
     private final EmailService emailService;
     private final PayMongoService payMongoService;
+    private final NotificationService notificationService;
 
     @Transactional
     public AuthResponse placeOrder(Long productId, Integer quantity,
-                                   String paymentMethod, String buyerEmail) {
+                                   String paymentMethod,
+                                   String meetupLocation, String meetupTime,
+                                   String buyerEmail) {
         try {
             User buyer = userRepository.findByEmail(buyerEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
@@ -41,17 +45,14 @@ public class OrderService {
             Product product = productRepository.findByIdWithSeller(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            if (product.getStatus() != Product.ProductStatus.ACTIVE) {
+            if (product.getStatus() != Product.ProductStatus.ACTIVE)
                 throw new RuntimeException("Product is not available for purchase");
-            }
 
-            if (product.getStock() < quantity) {
+            if (product.getStock() < quantity)
                 throw new RuntimeException("Insufficient stock. Available: " + product.getStock());
-            }
 
-            if (product.getSeller().getEmail().equals(buyerEmail)) {
+            if (product.getSeller().getEmail().equals(buyerEmail))
                 throw new RuntimeException("You cannot buy your own product");
-            }
 
             BigDecimal total = product.getPrice().multiply(BigDecimal.valueOf(quantity));
 
@@ -64,6 +65,8 @@ public class OrderService {
                     .totalAmount(total)
                     .paymentMethod(method)
                     .status(Order.OrderStatus.PENDING)
+                    .meetupLocation(meetupLocation)
+                    .meetupTime(meetupTime)
                     .items(new ArrayList<>())
                     .build();
 
@@ -83,12 +86,12 @@ public class OrderService {
             product.setStock(product.getStock() - quantity);
             productRepository.save(product);
 
-            String qrCodeUrl = null;
+            // ── Generate QR for BOTH payment methods ──────────────────────────
+            String qrCodeUrl = generateQrCode(savedOrder, product, buyer);
+
             String checkoutUrl = null;
 
-            if (method == Order.PaymentMethod.MEETUP) {
-                qrCodeUrl = generateQrCode(savedOrder, product, buyer);
-            } else if (method == Order.PaymentMethod.PAYMONGO) {
+            if (method == Order.PaymentMethod.PAYMONGO) {
                 try {
                     Map paymongoResponse = payMongoService.createPaymentLink(
                             savedOrder.getOrderNumber(),
@@ -109,24 +112,36 @@ public class OrderService {
                 }
             }
 
+            // ── Seller info ───────────────────────────────────────────────────
             String sellerName = "";
             String sellerEmail = "";
             try {
                 User seller = product.getSeller();
                 sellerEmail = seller.getEmail();
                 sellerName = seller.getFullName();
-                if (sellerName == null || sellerName.isBlank()) {
+                if (sellerName == null || sellerName.isBlank())
                     sellerName = seller.getFirstName() + " " + seller.getLastName();
-                }
             } catch (Exception e) {
                 sellerName = "Unknown";
             }
 
             String buyerName = buyer.getFullName();
-            if (buyerName == null || buyerName.isBlank()) {
+            if (buyerName == null || buyerName.isBlank())
                 buyerName = buyer.getFirstName() + " " + buyer.getLastName();
+
+            // ── Notify seller ─────────────────────────────────────────────────
+            try {
+                notificationService.createNotification(
+                        product.getSeller(),
+                        "New order for \"" + product.getName() + "\" from " + buyerName,
+                        "ORDER_PLACED",
+                        savedOrder.getId()
+                );
+            } catch (Exception e) {
+                System.out.println("Notification error (non-critical): " + e.getMessage());
             }
 
+            // ── Send emails ───────────────────────────────────────────────────
             try {
                 emailService.sendOrderConfirmationEmail(
                         buyer.getEmail(), buyerName,
@@ -150,11 +165,13 @@ public class OrderService {
             response.put("status", savedOrder.getStatus().name());
             response.put("paymentMethod", savedOrder.getPaymentMethod().name());
             response.put("totalAmount", savedOrder.getTotalAmount());
-            response.put("qrCodeUrl", qrCodeUrl);
+            response.put("qrCodeUrl", qrCodeUrl);           // always returned now
             response.put("checkoutUrl", checkoutUrl);
             response.put("productName", product.getName());
             response.put("quantity", quantity);
             response.put("sellerName", sellerName);
+            response.put("meetupLocation", savedOrder.getMeetupLocation());
+            response.put("meetupTime", savedOrder.getMeetupTime());
 
             return AuthResponse.builder()
                     .success(true)
@@ -163,8 +180,7 @@ public class OrderService {
                     .build();
 
         } catch (RuntimeException e) {
-            System.out.println("=== ORDER ERROR ===");
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("=== ORDER ERROR: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }
@@ -172,14 +188,17 @@ public class OrderService {
 
     private String generateQrCode(Order order, Product product, User buyer) {
         try {
+            String buyerName = buyer.getFullName() != null && !buyer.getFullName().isBlank()
+                    ? buyer.getFullName()
+                    : buyer.getFirstName() + " " + buyer.getLastName();
+
             String qrData = String.format(
-                    "ORDER:%s|PRODUCT:%s|BUYER:%s|AMOUNT:%.2f|METHOD:MEETUP",
+                    "ORDER:%s|PRODUCT:%s|BUYER:%s|AMOUNT:%.2f|METHOD:%s",
                     order.getOrderNumber(),
                     product.getName(),
-                    buyer.getFullName() != null
-                            ? buyer.getFullName()
-                            : buyer.getFirstName() + " " + buyer.getLastName(),
-                    order.getTotalAmount()
+                    buyerName,
+                    order.getTotalAmount(),
+                    order.getPaymentMethod().name()
             );
 
             String encoded = URLEncoder.encode(qrData, StandardCharsets.UTF_8);
@@ -204,78 +223,78 @@ public class OrderService {
     public AuthResponse getMyOrders(String buyerEmail) {
         User buyer = userRepository.findByEmail(buyerEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
         List<Order> orders = orderRepository.findByBuyerOrderByCreatedAtDesc(buyer);
-
         List<Map<String, Object>> orderList = orders.stream()
-                .map(this::mapOrder)
-                .collect(Collectors.toList());
-
+                .map(this::mapOrder).collect(Collectors.toList());
         Map<String, Object> response = new HashMap<>();
         response.put("orders", orderList);
         response.put("total", orderList.size());
-
         return AuthResponse.builder()
-                .success(true)
-                .data(response)
-                .timestamp(LocalDateTime.now().toString())
-                .build();
+                .success(true).data(response)
+                .timestamp(LocalDateTime.now().toString()).build();
     }
 
     @Transactional(readOnly = true)
     public AuthResponse getSellerOrders(String sellerEmail) {
         User seller = userRepository.findByEmail(sellerEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
         List<Order> orders = orderRepository.findBySellerOrderByCreatedAtDesc(seller);
-
         List<Map<String, Object>> orderList = orders.stream()
-                .map(this::mapOrder)
-                .collect(Collectors.toList());
-
+                .map(this::mapOrder).collect(Collectors.toList());
         Map<String, Object> response = new HashMap<>();
         response.put("orders", orderList);
         response.put("total", orderList.size());
-
         return AuthResponse.builder()
-                .success(true)
-                .data(response)
-                .timestamp(LocalDateTime.now().toString())
-                .build();
+                .success(true).data(response)
+                .timestamp(LocalDateTime.now().toString()).build();
     }
 
     @Transactional
     public AuthResponse updateOrderStatus(Long orderId, String status, String userEmail) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
         order.setStatus(Order.OrderStatus.valueOf(status));
         orderRepository.save(order);
+
+        try {
+            notificationService.createNotification(
+                    order.getBuyer(),
+                    "Your order " + order.getOrderNumber() + " is now " + status,
+                    "ORDER_STATUS", order.getId()
+            );
+        } catch (Exception e) {
+            System.out.println("Notification error (non-critical): " + e.getMessage());
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("orderId", order.getId());
         response.put("status", order.getStatus().name());
-
         return AuthResponse.builder()
-                .success(true)
-                .data(response)
-                .timestamp(LocalDateTime.now().toString())
-                .build();
+                .success(true).data(response)
+                .timestamp(LocalDateTime.now().toString()).build();
     }
 
     @Transactional(readOnly = true)
     public AuthResponse getOrderById(Long orderId, String userEmail) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
         Map<String, Object> response = new HashMap<>();
         response.put("order", mapOrder(order));
-
         return AuthResponse.builder()
-                .success(true)
-                .data(response)
-                .timestamp(LocalDateTime.now().toString())
-                .build();
+                .success(true).data(response)
+                .timestamp(LocalDateTime.now().toString()).build();
+    }
+
+    // ── Get order by order number (for PaymentSuccess page) ──────────────────
+    @Transactional(readOnly = true)
+    public AuthResponse getOrderByNumber(String orderNumber, String userEmail) {
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        Map<String, Object> response = new HashMap<>();
+        response.put("order", mapOrder(order));
+        return AuthResponse.builder()
+                .success(true).data(response)
+                .timestamp(LocalDateTime.now().toString()).build();
     }
 
     private Map<String, Object> mapOrder(Order o) {
@@ -286,14 +305,15 @@ public class OrderService {
         map.put("paymentMethod", o.getPaymentMethod().name());
         map.put("totalAmount", o.getTotalAmount());
         map.put("createdAt", o.getCreatedAt() != null ? o.getCreatedAt().toString() : "");
+        map.put("meetupLocation", o.getMeetupLocation());
+        map.put("meetupTime", o.getMeetupTime());
 
         if (o.getBuyer() != null) {
             Map<String, Object> buyer = new HashMap<>();
             buyer.put("id", o.getBuyer().getId());
             String name = o.getBuyer().getFullName();
-            if (name == null || name.isBlank()) {
+            if (name == null || name.isBlank())
                 name = o.getBuyer().getFirstName() + " " + o.getBuyer().getLastName();
-            }
             buyer.put("fullName", name);
             map.put("buyer", buyer);
         }
@@ -313,28 +333,92 @@ public class OrderService {
                             Map<String, Object> seller = new HashMap<>();
                             seller.put("id", item.getProduct().getSeller().getId());
                             String sName = item.getProduct().getSeller().getFullName();
-                            if (sName == null || sName.isBlank()) {
+                            if (sName == null || sName.isBlank())
                                 sName = item.getProduct().getSeller().getFirstName()
                                         + " " + item.getProduct().getSeller().getLastName();
-                            }
                             seller.put("fullName", sName);
                             i.put("seller", seller);
                         }
                         return i;
-                    })
-                    .collect(Collectors.toList());
+                    }).collect(Collectors.toList());
             map.put("items", items);
         }
 
-        if (o.getPaymentMethod() == Order.PaymentMethod.MEETUP) {
-            qrCodeRepository.findByOrderId(o.getId())
-                    .ifPresent(qr -> map.put("qrCodeUrl", qr.getQrImageUrl()));
-        }
+        // QR code for ALL orders (both MEETUP and PAYMONGO)
+        qrCodeRepository.findByOrderId(o.getId())
+                .ifPresent(qr -> map.put("qrCodeUrl", qr.getQrImageUrl()));
 
-        if (o.getPaymongoCheckoutUrl() != null) {
+        if (o.getPaymongoCheckoutUrl() != null)
             map.put("checkoutUrl", o.getPaymongoCheckoutUrl());
-        }
 
         return map;
+    }
+
+    @Transactional
+    public AuthResponse completeOrderByQr(String qrData, String sellerEmail) {
+        if (qrData == null || !qrData.contains("ORDER:"))
+            throw new RuntimeException("Invalid QR code");
+
+        String parsedOrderNumber = null;
+        for (String part : qrData.split("\\|")) {
+            if (part.startsWith("ORDER:")) {
+                parsedOrderNumber = part.substring("ORDER:".length()).trim();
+                break;
+            }
+        }
+
+        if (parsedOrderNumber == null)
+            throw new RuntimeException("Could not read order number from QR");
+
+        final String orderNumber = parsedOrderNumber;
+        Order order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderNumber));
+
+        User seller = userRepository.findByEmail(sellerEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean isSeller = order.getItems().stream()
+                .anyMatch(item -> item.getProduct().getSeller().getId().equals(seller.getId()));
+
+        if (!isSeller)
+            throw new RuntimeException("You are not the seller of this order");
+
+        // ── Allow QR scan for both MEETUP (PENDING) and PAYMONGO (PAID) ──────
+        if (order.getPaymentMethod() == Order.PaymentMethod.MEETUP
+                && order.getStatus() != Order.OrderStatus.PENDING)
+            throw new RuntimeException("Order is already " + order.getStatus().name());
+
+        if (order.getPaymentMethod() == Order.PaymentMethod.PAYMONGO
+                && order.getStatus() != Order.OrderStatus.PAID)
+            throw new RuntimeException("Order is not yet paid. Cannot complete.");
+
+        order.setStatus(Order.OrderStatus.COMPLETED);
+        orderRepository.save(order);
+
+        qrCodeRepository.findByOrderId(order.getId()).ifPresent(qr -> {
+            qr.setScannedAt(LocalDateTime.now());
+            qrCodeRepository.save(qr);
+        });
+
+        try {
+            notificationService.createNotification(order.getBuyer(),
+                    "Your order " + order.getOrderNumber() + " has been completed!",
+                    "ORDER_STATUS", order.getId());
+            notificationService.createNotification(seller,
+                    "You completed order " + order.getOrderNumber() + " via QR scan!",
+                    "ORDER_STATUS", order.getId());
+        } catch (Exception e) {
+            System.out.println("Notification error (non-critical): " + e.getMessage());
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("orderId", order.getId());
+        response.put("orderNumber", order.getOrderNumber());
+        response.put("status", "COMPLETED");
+        response.put("message", "Order completed successfully!");
+
+        return AuthResponse.builder()
+                .success(true).data(response)
+                .timestamp(LocalDateTime.now().toString()).build();
     }
 }

@@ -52,6 +52,12 @@ public class Order {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "meetup_location")
+    private String meetupLocation;
+
+    @Column(name = "meetup_time")
+    private String meetupTime;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

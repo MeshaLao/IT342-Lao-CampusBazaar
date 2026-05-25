@@ -19,7 +19,27 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "ORDER BY o.createdAt DESC")
     List<Order> findBySellerOrderByCreatedAtDesc(User seller);
 
+    @Query("SELECT DISTINCT o FROM Order o " +
+            "LEFT JOIN FETCH o.buyer " +
+            "LEFT JOIN FETCH o.items i " +
+            "LEFT JOIN FETCH i.product p " +
+            "LEFT JOIN FETCH p.seller " +
+            "ORDER BY o.createdAt DESC")
+    List<Order> findAllByOrderByCreatedAtDesc();
+
+    @Query("SELECT DISTINCT o FROM Order o " +
+            "LEFT JOIN FETCH o.buyer " +
+            "LEFT JOIN FETCH o.items i " +
+            "LEFT JOIN FETCH i.product p " +
+            "LEFT JOIN FETCH p.seller " +
+            "WHERE o.status = :status " +
+            "ORDER BY o.createdAt DESC")
+    List<Order> findByStatusOrderByCreatedAtDesc(Order.OrderStatus status);
+
     Optional<Order> findByOrderNumber(String orderNumber);
+
+    // Used by webhook to find order by PayMongo link ID
+    Optional<Order> findByPaymongoLinkId(String paymongoLinkId);
 
     long countByBuyerAndStatus(User buyer, Order.OrderStatus status);
 
