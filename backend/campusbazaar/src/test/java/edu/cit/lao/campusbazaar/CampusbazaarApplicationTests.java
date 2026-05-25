@@ -43,6 +43,7 @@ class CampusBazaarApplicationTests {
 		assertNotNull(orderService);
 		assertNotNull(adminService);
 	}
+
 	// ── TC-002 ──────────────────────────────────────────────────────
 	@Test @Order(2)
 	void TC002_register_validData_returnsToken() {
@@ -56,7 +57,6 @@ class CampusBazaarApplicationTests {
 
 		assertTrue(res.isSuccess());
 		assertNotNull(res.getData());
-		// Just verify data is not null — structure depends on AuthResponse
 		assertTrue(res.getData().toString().contains("accessToken") ||
 				res.getData().toString().contains("token") ||
 				res.getData() != null);
@@ -92,6 +92,7 @@ class CampusBazaarApplicationTests {
 
 		assertThrows(RuntimeException.class, () -> authService.login(login));
 	}
+
 	// ── TC-005 ──────────────────────────────────────────────────────
 	@Test @Order(5)
 	void TC005_login_validCredentials_returnsTokens() {
@@ -125,7 +126,6 @@ class CampusBazaarApplicationTests {
 
 		assertTrue(res.isSuccess());
 		assertNotNull(res.getData());
-		// JWT token is in the response data
 		assertNotNull(res.getTimestamp());
 	}
 
@@ -195,8 +195,7 @@ class CampusBazaarApplicationTests {
 			return;
 		}
 
-		AuthResponse res = orderService.placeOrder(
-				product.getId(), 1, "MEETUP", "tc009_buyer@cit.edu");
+		AuthResponse res = orderService.placeOrder(product.getId(), 1, "MEETUP", null, null, "tc009_buyer@cit.edu");
 
 		assertTrue(res.isSuccess());
 		Map<?, ?> data = (Map<?, ?>) res.getData();
@@ -223,8 +222,7 @@ class CampusBazaarApplicationTests {
 		Long productId = Long.valueOf(product.get("id").toString());
 
 		assertThrows(RuntimeException.class, () ->
-				orderService.placeOrder(
-						productId, 1, "MEETUP", "tc010_seller@cit.edu"));
+				orderService.placeOrder(productId, 1, "MEETUP", null, null, "tc010_seller@cit.edu"));
 	}
 
 	// ── TC-011 ──────────────────────────────────────────────────────
@@ -248,7 +246,6 @@ class CampusBazaarApplicationTests {
 
 		assertEquals("PENDING_APPROVAL", product.get("status"));
 
-		// Use ProductService.approveProduct (not AdminService)
 		AuthResponse approveRes = productService.approveProduct(
 				productId, "admin@campusbazaar.com");
 
@@ -278,7 +275,6 @@ class CampusBazaarApplicationTests {
 
 		String reason = "Image quality is too low";
 
-		// Use ProductService.rejectProduct (not AdminService)
 		AuthResponse rejectRes = productService.rejectProduct(
 				productId, reason, "admin@campusbazaar.com");
 
