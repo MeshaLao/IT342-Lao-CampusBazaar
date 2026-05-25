@@ -94,7 +94,7 @@ export default function Marketplace() {
           <p className="text-xs" style={{ color: '#1D5D5D' }}>PRODUCTS</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold" style={{ color: '#421C3B' }}>$50K+</p>
+          <p className="text-2xl font-bold" style={{ color: '#421C3B' }}>₱50K+</p>
           <p className="text-xs" style={{ color: '#1D5D5D' }}>SALES MADE</p>
         </div>
       </div>

@@ -4,6 +4,10 @@ import api from '../../shared/api/axios'
 import Navbar from '../../shared/components/layout/Navbar'
 import Footer from '../../shared/components/layout/Footer'
 import StatusBadge from '../../shared/components/ui/StatusBadge'
+import useCart from '../../shared/hooks/useCart'
+import useToast from '../../shared/hooks/useToast'
+import Toast from '../../shared/components/ui/Toast'
+
 import {
   MessageCircle, ShoppingCart, Zap,
   Share2, Send, Package, AlertCircle,
@@ -21,7 +25,9 @@ export default function ProductDetail() {
   const [newComment, setNewComment] = useState('')
   const [replyText, setReplyText] = useState({})
   const [showReplyFor, setShowReplyFor] = useState(null)
-
+  const { addToCart } = useCart()
+  const { toast, showToast } = useToast()
+  const showCartToast = () => showToast('Added to cart!')
   const userName = localStorage.getItem('userName')
   const token = localStorage.getItem('token')
 
@@ -375,18 +381,26 @@ export default function ProductDetail() {
                     Buy Now
                   </button>
                   <button
+                    onClick={() => {
+                      addToCart({ ...product, quantity })
+                      showCartToast()
+                    }}
                     className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border-2"
                     style={{ borderColor: '#1D5D5D', color: '#1D5D5D' }}>
                     <ShoppingCart size={16} />
                     Add to Cart
                   </button>
                   <button
+                    onClick={() => navigate(
+                      `/messages?userId=${product.seller?.id}&productId=${product.id}&name=${product.seller?.fullName}`
+                    )}
                     className="px-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center border-2"
                     style={{ borderColor: '#421C3B', color: '#421C3B' }}>
                     <MessageCircle size={16} />
                   </button>
                 </div>
               )}
+              
 
               {/* Not available notice */}
               {!isOwner && !isActive && (
@@ -611,6 +625,8 @@ export default function ProductDetail() {
           )}
         </div>
       </div>
+
+<Toast message={toast?.msg} type={toast?.type} />
 
       <Footer />
     </div>
