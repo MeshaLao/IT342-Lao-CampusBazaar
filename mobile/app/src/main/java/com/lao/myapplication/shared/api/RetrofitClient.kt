@@ -1,4 +1,4 @@
-package com.lao.myapplication.shared.file.api
+package com.lao.myapplication.shared.api
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -7,7 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    // 10.0.2.2 = your Mac's localhost from inside the Android Emulator
+    // 10.0.2.2 = localhost from Android emulator
     private const val BASE_URL = "http://10.0.2.2:8080/api/v1/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -17,7 +17,7 @@ object RetrofitClient {
     private val client = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .build()
-//
+
     val instance: ApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
