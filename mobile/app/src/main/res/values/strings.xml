@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Campus Bazaar</string>
+    <string name="welcome">Welcome!</string>
+    <string name="user">User</string>
+    <string name="browse_marketplace">Browse Marketplace</string>
+    <string name="my_orders">My Orders</string>
+    <string name="platform_statistics">Platform Statistics</string>
+    <string name="orders">Orders</string>
+    <string name="users">Users</string>
+    <string name="products">Products</string>
+    <string name="logout">Logout</string>
 </resources>

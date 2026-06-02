@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.lao.myapplication">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -24,6 +25,8 @@
         <activity android:name=".feature.auth.RegisterActivity" />
         <activity android:name=".feature.auth.LoginActivity" />
         <activity android:name=".feature.dashboard.DashboardActivity" />
+        <activity android:name=".feature.marketplace.MarketplaceActivity" />
+        <activity android:name=".feature.orders.MyOrdersActivity" />
 
     </application>
 
