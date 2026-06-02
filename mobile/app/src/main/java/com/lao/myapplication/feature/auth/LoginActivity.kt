@@ -3,19 +3,16 @@ package com.lao.myapplication.feature.auth
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
-import android.widget.ProgressBar
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import android.widget.EditText
 import com.google.gson.Gson
 import com.lao.myapplication.R
-import com.lao.myapplication.shared.shared.api.RetrofitClient
-import com.lao.myapplication.shared.shared.model.LoginRequest
-import com.lao.myapplication.shared.shared.model.UserData
 import com.lao.myapplication.feature.dashboard.DashboardActivity
-import com.lao.myapplication.shared.shared.utils.TokenManager
+import com.lao.myapplication.shared.api.RetrofitClient
+import com.lao.myapplication.shared.model.LoginRequest
+import com.lao.myapplication.shared.model.UserData
+import com.lao.myapplication.shared.utils.TokenManager
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -31,7 +28,6 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        // Bind views
         etEmail = findViewById(R.id.etEmail)
         etPassword = findViewById(R.id.etPassword)
         btnLogin = findViewById(R.id.btnLogin)
@@ -39,37 +35,24 @@ class LoginActivity : AppCompatActivity() {
         tvRegisterLink = findViewById(R.id.tvRegisterLink)
         progressBar = findViewById(R.id.progressBar)
 
-        // Go to Register
         tvRegisterLink.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
             finish()
         }
 
-        // Login button
-        btnLogin.setOnClickListener {
-            handleLogin()
-        }
+        btnLogin.setOnClickListener { handleLogin() }
     }
 
     private fun handleLogin() {
         val email = etEmail.text.toString().trim()
         val password = etPassword.text.toString().trim()
 
-        // Validate inputs
-        if (email.isEmpty()) {
-            showError("Email is required")
-            return
-        }
+        if (email.isEmpty()) { showError("Email is required"); return }
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            showError("Invalid email format")
-            return
+            showError("Invalid email format"); return
         }
-        if (password.isEmpty()) {
-            showError("Password is required")
-            return
-        }
+        if (password.isEmpty()) { showError("Password is required"); return }
 
-        // Show loading
         btnLogin.isEnabled = false
         btnLogin.text = "OPENING..."
         progressBar.visibility = View.VISIBLE
@@ -77,30 +60,26 @@ class LoginActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = RetrofitClient.instance.login(
-                    LoginRequest(email, password)
-                )
+                val response = RetrofitClient.instance.login(LoginRequest(email, password))
 
                 if (response.isSuccessful && response.body()?.success == true) {
-                    // Parse token from response
                     val gson = Gson()
                     val dataJson = gson.toJson(response.body()?.data)
                     val userData = gson.fromJson(dataJson, UserData::class.java)
 
-                    // Save token
-                    TokenManager.saveToken(this@LoginActivity, userData.accessToken)
+                    TokenManager.saveToken(this@LoginActivity, userData.accessToken ?: "")
+                    TokenManager.saveUserInfo(
+                        this@LoginActivity,
+                        userData.email ?: "",
+                        userData.role ?: "STUDENT",
+                        userData.fullName ?: ""
+                    )
 
-                    // Go to Dashboard with user info
-                    val intent = Intent(this@LoginActivity, DashboardActivity::class.java)
-                    intent.putExtra("email", userData.email)
-                    intent.putExtra("role", userData.role)
-                    startActivity(intent)
+                    startActivity(Intent(this@LoginActivity, DashboardActivity::class.java))
                     finish()
-
                 } else {
                     showError("Invalid email or password")
                 }
-
             } catch (e: Exception) {
                 showError("Cannot connect to server. Make sure backend is running.")
             } finally {

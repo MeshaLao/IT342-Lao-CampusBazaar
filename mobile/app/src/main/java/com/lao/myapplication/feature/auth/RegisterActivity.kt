@@ -3,19 +3,16 @@ package com.lao.myapplication.feature.auth
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
-import android.widget.ProgressBar
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import android.widget.EditText
 import com.google.gson.Gson
 import com.lao.myapplication.R
-import com.lao.myapplication.shared.shared.api.RetrofitClient
-import com.lao.myapplication.shared.shared.model.RegisterRequest
-import com.lao.myapplication.shared.shared.model.UserData
 import com.lao.myapplication.feature.dashboard.DashboardActivity
-import com.lao.myapplication.shared.shared.utils.TokenManager
+import com.lao.myapplication.shared.api.RetrofitClient
+import com.lao.myapplication.shared.model.RegisterRequest
+import com.lao.myapplication.shared.model.UserData
+import com.lao.myapplication.shared.utils.TokenManager
 import kotlinx.coroutines.launch
 
 class RegisterActivity : AppCompatActivity() {
@@ -34,7 +31,6 @@ class RegisterActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        // Bind views
         etFirstName = findViewById(R.id.etFirstName)
         etLastName = findViewById(R.id.etLastName)
         etEmail = findViewById(R.id.etEmail)
@@ -45,16 +41,12 @@ class RegisterActivity : AppCompatActivity() {
         tvLoginLink = findViewById(R.id.tvLoginLink)
         progressBar = findViewById(R.id.progressBar)
 
-        // Go to Login
         tvLoginLink.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
 
-        // Register button
-        btnRegister.setOnClickListener {
-            handleRegister()
-        }
+        btnRegister.setOnClickListener { handleRegister() }
     }
 
     private fun handleRegister() {
@@ -64,37 +56,16 @@ class RegisterActivity : AppCompatActivity() {
         val password = etPassword.text.toString().trim()
         val confirmPassword = etConfirmPassword.text.toString().trim()
 
-        // Validate inputs
-        if (firstName.isEmpty()) {
-            showError("First name is required")
-            return
-        }
-        if (lastName.isEmpty()) {
-            showError("Last name is required")
-            return
-        }
-        if (email.isEmpty()) {
-            showError("Email is required")
-            return
-        }
+        if (firstName.isEmpty()) { showError("First name is required"); return }
+        if (lastName.isEmpty()) { showError("Last name is required"); return }
+        if (email.isEmpty()) { showError("Email is required"); return }
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            showError("Invalid email format")
-            return
+            showError("Invalid email format"); return
         }
-        if (password.isEmpty()) {
-            showError("Password is required")
-            return
-        }
-        if (password.length < 8) {
-            showError("Password must be at least 8 characters")
-            return
-        }
-        if (password != confirmPassword) {
-            showError("Passwords do not match")
-            return
-        }
+        if (password.isEmpty()) { showError("Password is required"); return }
+        if (password.length < 8) { showError("Password must be at least 8 characters"); return }
+        if (password != confirmPassword) { showError("Passwords do not match"); return }
 
-        // Show loading
         btnRegister.isEnabled = false
         btnRegister.text = "JOINING..."
         progressBar.visibility = View.VISIBLE
@@ -107,26 +78,23 @@ class RegisterActivity : AppCompatActivity() {
                 )
 
                 if (response.isSuccessful && response.body()?.success == true) {
-                    // Parse token from response
                     val gson = Gson()
                     val dataJson = gson.toJson(response.body()?.data)
                     val userData = gson.fromJson(dataJson, UserData::class.java)
 
-                    // Save token
-                    TokenManager.saveToken(this@RegisterActivity, userData.accessToken)
+                    TokenManager.saveToken(this@RegisterActivity, userData.accessToken ?: "")
+                    TokenManager.saveUserInfo(
+                        this@RegisterActivity,
+                        userData.email ?: "",
+                        userData.role ?: "STUDENT",
+                        userData.fullName ?: ""
+                    )
 
-                    // Go to Dashboard with user info
-                    val intent = Intent(this@RegisterActivity, DashboardActivity::class.java)
-                    intent.putExtra("email", userData.email)
-                    intent.putExtra("role", userData.role)
-                    startActivity(intent)
+                    startActivity(Intent(this@RegisterActivity, DashboardActivity::class.java))
                     finish()
-
                 } else {
-                    val errorMsg = response.body()?.data?.toString() ?: "Registration failed"
-                    showError(errorMsg)
+                    showError(response.body()?.data?.toString() ?: "Registration failed")
                 }
-
             } catch (e: Exception) {
                 showError("Cannot connect to server. Make sure backend is running.")
             } finally {
