@@ -42,7 +42,7 @@ export default function Navbar() {
       <Link to="/marketplace" className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center"
           style={{ backgroundColor: '#E8E4C9', border: '2px solid #B28E3A' }}>
-          <span className="text-lg">🐪</span>
+          <img src="/CB-logo.png" alt="Campus Bazaar" className="w-full h-full object-cover" />
         </div>
         <div>
           <p className="font-bold text-sm tracking-widest leading-tight"
@@ -130,7 +130,13 @@ export default function Navbar() {
                 ) : (
                   notifications.map(n => (
                     <div key={n.id}
-                      className="px-4 py-3 text-xs"
+                      onClick={() => {
+                        setShowNotifs(false)
+                        if (n.type === 'NEW_MESSAGE') navigate('/messages')
+                        else if (n.type === 'ORDER_PLACED') navigate('/dashboard')
+                        else if (n.type === 'ORDER_STATUS') navigate('/my-orders')
+                      }}
+                      className="px-4 py-3 text-xs cursor-pointer hover:opacity-80"
                       style={{
                         borderBottom: '1px solid #f9f7f2',
                         backgroundColor: n.read ? '#fff' : '#f9f7f2'
